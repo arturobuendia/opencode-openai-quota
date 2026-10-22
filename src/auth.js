@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import path from "node:path";
 
 export const USAGE_ENDPOINT = "https://chatgpt.com/backend-api/wham/usage";
+export const RESET_CREDITS_ENDPOINT = "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits";
 
 const DEFAULT_TIMEOUT_MS = 8_000;
 const DEFAULT_MAX_RESPONSE_BYTES = 64 * 1024;
@@ -213,6 +214,42 @@ async function readLimitedJson(response, maxBytes, signal) {
   }
 }
 
+async function requestOpenAIJson(endpoint, fetchImpl, headers, responseLimit, signal) {
+  let response;
+
+  try {
+    response = await fetchImpl(endpoint, {
+      method: "GET",
+      headers,
+      redirect: "error",
+      credentials: "omit",
+      cache: "no-store",
+      referrerPolicy: "no-referrer",
+      signal,
+    });
+  } catch (error) {
+    if (error instanceof QuotaRequestError) {
+      throw error;
+    }
+
+    throw new QuotaRequestError(signal.aborted ? "aborted" : "network");
+  }
+
+  if (response.redirected || (response.status >= 300 && response.status < 400)) {
+    throw new QuotaRequestError("redirect");
+  }
+
+  if (response.status === 401) {
+    throw new QuotaRequestError("expired");
+  }
+
+  if (!response.ok) {
+    throw new QuotaRequestError("unavailable");
+  }
+
+  return readLimitedJson(response, responseLimit, signal);
+}
+
 export async function requestOpenAIUsage(credentials, {
   fetchImpl = globalThis.fetch,
   signal,
@@ -246,6 +283,9 @@ export async function requestOpenAIUsage(credentials, {
 
   let timeoutHandle;
   let timedOut = false;
+  let usagePayload;
+  let resetDetailsPending = false;
+  const resetDetailsTimedOut = Symbol("reset-details-timeout");
   let rejectAbort;
   const callerAborted = new Promise((resolve, reject) => {
     rejectAbort = reject;
@@ -267,35 +307,61 @@ export async function requestOpenAIUsage(credentials, {
     timeoutHandle = setTimeout(() => {
       timedOut = true;
       requestController.abort();
-      reject(new QuotaRequestError("timeout"));
+
+      if (resetDetailsPending && usagePayload !== undefined && !signal?.aborted) {
+        resolve(resetDetailsTimedOut);
+      } else {
+        reject(new QuotaRequestError("timeout"));
+      }
     }, duration);
   });
 
   const operation = (async () => {
     try {
-      const response = await fetchImpl(USAGE_ENDPOINT, {
-        method: "GET",
+      const payload = await requestOpenAIJson(
+        USAGE_ENDPOINT,
+        fetchImpl,
         headers,
-        redirect: "error",
-        credentials: "omit",
-        cache: "no-store",
-        referrerPolicy: "no-referrer",
-        signal: requestController.signal,
-      });
+        responseLimit,
+        requestController.signal,
+      );
+      usagePayload = payload;
+      const availableCount = payload?.rate_limit_reset_credits?.available_count;
 
-      if (response.redirected || (response.status >= 300 && response.status < 400)) {
-        throw new QuotaRequestError("redirect");
+      if (!Number.isSafeInteger(availableCount) || availableCount <= 0) {
+        return payload;
       }
 
-      if (response.status === 401) {
-        throw new QuotaRequestError("expired");
-      }
+      resetDetailsPending = true;
 
-      if (!response.ok) {
-        throw new QuotaRequestError("unavailable");
-      }
+      try {
+        const resetCreditDetails = await requestOpenAIJson(
+          RESET_CREDITS_ENDPOINT,
+          fetchImpl,
+          headers,
+          responseLimit,
+          requestController.signal,
+        );
+        resetDetailsPending = false;
 
-      return await readLimitedJson(response, responseLimit, requestController.signal);
+        return { ...payload, reset_credit_details: resetCreditDetails };
+      } catch (error) {
+        resetDetailsPending = false;
+
+        if (error.kind === "expired") {
+          throw error;
+        }
+
+        if (error.kind === "aborted" && (!timedOut || signal?.aborted)) {
+          throw error;
+        }
+
+        return {
+          ...payload,
+          reset_credit_details: null,
+          reset_credit_details_stale: timedOut || ["network", "timeout", "unavailable"].includes(error.kind),
+        };
+      }
     } catch (error) {
       if (error instanceof QuotaRequestError) {
         throw error;
@@ -318,7 +384,21 @@ export async function requestOpenAIUsage(credentials, {
       ? Promise.race([operation, timeout, callerAborted])
       : Promise.race([operation, timeout]);
 
-    return await pending;
+    const result = await pending;
+
+    if (result === resetDetailsTimedOut) {
+      if (signal?.aborted) {
+        throw new QuotaRequestError("aborted");
+      }
+
+      return {
+        ...usagePayload,
+        reset_credit_details: null,
+        reset_credit_details_stale: true,
+      };
+    }
+
+    return result;
   } catch (error) {
     if (error instanceof QuotaRequestError) {
       throw error;

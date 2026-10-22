@@ -122,6 +122,40 @@ function nextResetLine(snapshot) {
   return `Next reset · ${nextReset.label} · ${formatLocalResetDate(nextReset.window.resetAt)} · ${formatCountdown(nextReset.window.resetAt, snapshot.clockNow)}`;
 }
 
+function resetCreditsLine(snapshot) {
+  const resetCredits = snapshot.resetCredits;
+
+  if (!resetCredits) {
+    return "Banked resets · unavailable";
+  }
+
+  const label = snapshot.status === "stale" ? "Last known banked resets" : "Banked resets";
+
+  return `${label} · ${resetCredits.availableCount} available`;
+}
+
+function resetCreditExpirationLine(snapshot) {
+  const resetCredits = snapshot.resetCredits;
+
+  if (!resetCredits) {
+    return "Next expiry · unavailable";
+  }
+
+  if (resetCredits.availableCount === 0) {
+    return "Next expiry · none";
+  }
+
+  if (!Number.isFinite(resetCredits.nextExpirationAt)) {
+    return "Next expiry · unavailable";
+  }
+
+  const label = resetCredits.expirationStale || snapshot.status === "stale"
+    ? "Last known expiry"
+    : "Next expiry";
+
+  return `${label} · ${formatLocalResetDate(resetCredits.nextExpirationAt)} · ${formatCountdown(resetCredits.nextExpirationAt, snapshot.clockNow)}`;
+}
+
 function readPalette(theme) {
   const current = theme?.current;
 
@@ -250,7 +284,12 @@ function createSidebarComponent(controller, runtime) {
         }),
         runtime.jsx("text", {
           fg: palette.textMuted,
-          children: "Manual refresh: command palette",
+          children: () => resetCreditsLine(snapshot()),
+        }),
+        runtime.jsx("text", {
+          fg: palette.textMuted,
+          wrapMode: "word",
+          children: () => resetCreditExpirationLine(snapshot()),
         }),
       ],
     });

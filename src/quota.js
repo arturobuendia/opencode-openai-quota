@@ -91,6 +91,109 @@ function classifyWindow(window, source, now) {
   };
 }
 
+function parseResetExpiration(value, now) {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const parts = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/i.exec(value);
+
+  if (!parts) {
+    return undefined;
+  }
+
+  const [, year, month, day, hour, minute, second] = parts.map(Number);
+  const calendarDate = new Date(0);
+  calendarDate.setUTCFullYear(year, month - 1, day);
+
+  if (
+    calendarDate.getUTCFullYear() !== year
+    || calendarDate.getUTCMonth() !== month - 1
+    || calendarDate.getUTCDate() !== day
+    || hour > 23
+    || minute > 59
+    || second > 59
+  ) {
+    return undefined;
+  }
+
+  const timestamp = Date.parse(value);
+
+  if (!Number.isFinite(timestamp) || timestamp <= now || timestamp > MAX_DATE_MS) {
+    return undefined;
+  }
+
+  return timestamp;
+}
+
+function resetCreditCount(value) {
+  return Number.isSafeInteger(value) && value >= 0 ? value : undefined;
+}
+
+function findNextResetCreditExpiration(details, availableCount, now) {
+  const detailCount = resetCreditCount(details?.available_count);
+  const credits = details?.credits;
+
+  if (
+    detailCount !== availableCount
+    || !Array.isArray(credits)
+    || credits.length !== availableCount
+    || availableCount === 0
+  ) {
+    return undefined;
+  }
+
+  let nextExpirationAt = Infinity;
+
+  for (const credit of credits) {
+    if (
+      !isRecord(credit)
+      || credit.reset_type !== "codex_rate_limits"
+      || credit.status !== "available"
+    ) {
+      return undefined;
+    }
+
+    const expiration = parseResetExpiration(credit.expires_at, now);
+
+    if (expiration === undefined) {
+      return undefined;
+    }
+
+    nextExpirationAt = Math.min(nextExpirationAt, expiration);
+  }
+
+  return Number.isFinite(nextExpirationAt) ? nextExpirationAt : undefined;
+}
+
+export function parseResetCredits(payload, now = Date.now()) {
+  const usageCount = resetCreditCount(payload?.rate_limit_reset_credits?.available_count);
+  const detailsCount = resetCreditCount(payload?.reset_credit_details?.available_count);
+  const availableCount = detailsCount ?? usageCount;
+
+  if (availableCount === undefined) {
+    return null;
+  }
+
+  if (availableCount === 0) {
+    return {
+      availableCount,
+      nextExpirationAt: null,
+      expirationStale: false,
+    };
+  }
+
+  return {
+    availableCount,
+    nextExpirationAt: findNextResetCreditExpiration(
+      payload?.reset_credit_details,
+      availableCount,
+      now,
+    ) ?? null,
+    expirationStale: false,
+  };
+}
+
 export function parseQuotaPayload(payload, now = Date.now()) {
   if (!isRecord(payload) || !isRecord(payload.rate_limit)) {
     return undefined;
@@ -197,6 +300,7 @@ export function createQuotaController({
     status: "loading",
     refreshing: false,
     windows: null,
+    resetCredits: null,
     fetchedAt: null,
     clockNow: now(),
   };
@@ -225,7 +329,7 @@ export function createQuotaController({
   }
 
   function clearQuota(status) {
-    publish({ status, windows: null, fetchedAt: null });
+    publish({ status, windows: null, resetCredits: null, fetchedAt: null });
   }
 
   async function refresh() {
@@ -266,12 +370,25 @@ export function createQuotaController({
 
       const fetchedAt = now();
       const windows = parseQuotaPayload(payload, fetchedAt);
+      let resetCredits = parseResetCredits(payload, fetchedAt);
 
       if (!windows) {
         throw new QuotaRequestError("invalid-response");
       }
 
-      publish({ status: "ready", windows, fetchedAt });
+      if (
+        payload?.reset_credit_details_stale === true
+        && resetCredits?.availableCount > 0
+        && snapshot.resetCredits?.nextExpirationAt
+      ) {
+        resetCredits = {
+          ...resetCredits,
+          nextExpirationAt: snapshot.resetCredits.nextExpirationAt,
+          expirationStale: true,
+        };
+      }
+
+      publish({ status: "ready", windows, resetCredits, fetchedAt });
       return true;
     } catch (error) {
       if (disposed || request.signal.aborted || error?.kind === "aborted") {
