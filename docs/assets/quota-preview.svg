@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 431 273" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 431 315" role="img" aria-labelledby="title description">
   <title id="title">Recreated OpenAI quota panel</title>
-  <desc id="description">An SVG recreation of the actual OpenCode quota panel, not a captured screenshot. Example values show 19 percent remaining in the 5-hour window and 58 percent remaining weekly. Appearance varies by terminal, font, and theme.</desc>
+  <desc id="description">An SVG recreation of the OpenCode quota panel, not a captured screenshot. Example values show 19 percent remaining in the 5-hour window, 58 percent remaining weekly, two available banked resets, and their next reported expiration. Appearance varies by terminal, font, and theme.</desc>
 
-  <rect width="431" height="273" fill="#1a1a1a"/>
+  <rect width="431" height="315" fill="#1a1a1a"/>
 
   <g font-family="Cascadia Mono, JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="20" font-weight="500">
     <text x="20" y="37" fill="#0087ff">OpenAI quota</text>
@@ -22,6 +22,8 @@
     <text x="20" y="198" fill="#858585">PM · 33m</text>
 
     <text x="20" y="221" fill="#858585">Updated 9:38:58 PM</text>
-    <text x="20" y="244" fill="#858585">Manual refresh: command palette</text>
+    <text x="20" y="244" fill="#858585">Banked resets · 2 available</text>
+    <text x="20" y="267" fill="#858585">Next expiry · Oct 31, 10:12</text>
+    <text x="20" y="290" fill="#858585">PM · 10d</text>
   </g>
 </svg>

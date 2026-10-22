@@ -10,14 +10,14 @@
 <p align="center"><a href="#quick-install"><strong>Quick install ↓</strong></a></p>
 
 <p align="center">
-  <img src="docs/assets/quota-preview.svg" alt="Recreation of an OpenCode quota panel with 19 percent remaining in the 5-hour window and 58 percent remaining weekly, next reset details, and refresh status." width="431">
+  <img src="docs/assets/quota-preview.svg" alt="Recreation of an OpenCode quota panel with remaining quota, next reset details, two available banked resets, and the next reported expiration." width="431">
 </p>
 
 <p align="center"><sub>SVG recreation of the actual panel with example values—not a captured screenshot. Appearance varies by terminal, font, and theme.</sub></p>
 
 ## What it does
 
-Adds a small quota panel to OpenCode's sidebar so you can see the 5-hour and weekly OpenAI subscription windows, their remaining percentages, and the next known reset time. It uses the quota information OpenAI returns for an OpenAI OAuth login; it is not an API billing, credit, token, or cost tracker.
+Adds a small quota panel to OpenCode's sidebar so you can see the 5-hour and weekly OpenAI subscription windows, their remaining percentages, the next known reset time, and available banked Codex resets. It uses quota information OpenAI returns for an OpenAI OAuth login; it is not an API billing, usage-credit, token, or cost tracker.
 
 ## Quick install
 
@@ -73,6 +73,8 @@ The panel shows:
 - **5-hour** and **Weekly** windows when those windows are present in the usage response.
 - **Remaining quota**, not used quota. For example, `25% used` is displayed as `75% left`.
 - The **earliest known reset**, formatted in local time with a countdown. If no reset is available, the panel says so.
+- **Available banked resets**, including a genuine `0`, and the next expiration when the service provides a complete, valid detail list. The count is unavailable if the usage response lacks a valid count; expiration is unavailable when reset details are missing, incomplete, inconsistent, or have an unknown expiration.
+- Banked resets are manually redeemable benefits, separate from automatic resets and purchased usage credits. The plugin only displays their count and expiration; it never redeems them. See [OpenAI's reset guide](https://help.openai.com/en/articles/20001498-how-resets-work-in-codex) for the distinctions and offer terms.
 - Refresh status and the time of the last successful update.
 
 The plugin refreshes on startup and every **2 minutes**. The countdown clock updates every **30 seconds**. To refresh sooner, open OpenCode's command palette and choose **Refresh OpenAI quota** (category **OpenAI quota**).
@@ -94,14 +96,15 @@ The plugin uses OpenCode's TUI/Solid runtime; you do not need to install a separ
 
 ## Privacy and network behavior
 
-Quota refresh makes an HTTPS request to OpenAI's fixed usage endpoint, `https://chatgpt.com/backend-api/wham/usage`, using the OAuth credential OpenCode already manages. The request rejects redirects, omits cookies, disables caching, and does not send a referrer. The credential is used in-process and is not included in the sidebar snapshot or sanitized request errors. This still makes a direct network request to `chatgpt.com` each time quota is refreshed.
+Quota refresh uses OpenAI's fixed HTTPS usage endpoint, `https://chatgpt.com/backend-api/wham/usage`, and, when available banked resets are reported, its reset-detail endpoint, `https://chatgpt.com/backend-api/wham/rate-limit-reset-credits`. Both requests use the OAuth credential OpenCode already manages, reject redirects, omit cookies, disable caching, and do not send a referrer. The credential is used in-process and is not included in the sidebar snapshot or sanitized request errors. This makes direct network requests to `chatgpt.com` when quota is refreshed.
 
 ## Troubleshooting
 
 - **No panel after restart:** confirm the entry is in `tui.json`, the JSON is valid, and the absolute `file:` URL points to this checkout's `src/tui.js`.
 - **API-key or not-connected message:** connect OpenAI through OpenCode with OAuth; an API key is not a substitute for subscription quota access.
 - **Expired or connection issue:** reconnect if prompted. For a temporary network failure, the last good values stay visible; use **Refresh OpenAI quota** to retry.
-- **Reset says unavailable:** the service did not provide a usable reset time for the returned window.
+- **Quota reset says unavailable:** the service did not provide a usable reset time for the returned window.
+- **Banked reset expiration says unavailable:** the count may still be known, but the service did not provide a complete, consistent list of available resets with valid expiration timestamps. The plugin does not infer expiration from regular quota reset times.
 
 ## Development
 
