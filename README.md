@@ -25,13 +25,13 @@ Adds a small quota panel to OpenCode's sidebar so you can see the 5-hour and wee
 
 ### 1. Get the source
 
-When this project is hosted on GitHub, use **Code → Download ZIP** and extract it to a permanent folder, or clone it. This checkout has no Git remote configured, so the repository URL is intentionally not filled in:
+Clone the repository into a permanent folder; OpenCode uses the checkout path after configuration.
 
 ```sh
-git clone https://github.com/OWNER/REPOSITORY.git
+git clone https://github.com/arturobuendia/opencode-openai-quota.git
 ```
 
-Replace `OWNER/REPOSITORY` with the actual GitHub slug. Keep the checkout in place after configuring the plugin; its path is used by OpenCode.
+Keep the checkout in place after configuring the plugin.
 
 ### 2. Add the local plugin to `tui.json`
 
