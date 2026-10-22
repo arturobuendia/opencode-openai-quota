@@ -10,10 +10,10 @@
 <p align="center"><a href="#quick-install"><strong>Quick install ↓</strong></a></p>
 
 <p align="center">
-  <img src="docs/assets/quota-preview.svg" alt="Illustrative OpenCode sidebar with synthetic values: 75 percent remaining in a 5-hour quota window, 60 percent remaining weekly, a reset countdown, and a command-palette refresh hint." width="880">
+  <img src="docs/assets/quota-preview.svg" alt="Recreation of an OpenCode quota panel with 19 percent remaining in the 5-hour window and 58 percent remaining weekly, next reset details, and refresh status." width="431">
 </p>
 
-<p align="center"><sub>Illustration only — synthetic sample data, not a screenshot or a live quota reading.</sub></p>
+<p align="center"><sub>SVG recreation of the actual panel with example values—not a captured screenshot. Appearance varies by terminal, font, and theme.</sub></p>
 
 ## What it does
 

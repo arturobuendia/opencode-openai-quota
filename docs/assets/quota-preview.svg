@@ -1,53 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-labelledby="title description">
-  <title id="title">OpenAI quota sidebar preview</title>
-  <desc id="description">Illustrative terminal-style sidebar with synthetic sample data showing 75 percent remaining in a 5-hour window, 60 percent remaining in the weekly window, the next reset countdown, and the command-palette refresh hint. This is not a screenshot.</desc>
-  <defs>
-    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0b1020"/>
-      <stop offset="1" stop-color="#111827"/>
-    </linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#38bdf8"/>
-      <stop offset="1" stop-color="#818cf8"/>
-    </linearGradient>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 431 273" role="img" aria-labelledby="title description">
+  <title id="title">Recreated OpenAI quota panel</title>
+  <desc id="description">An SVG recreation of the actual OpenCode quota panel, not a captured screenshot. Example values show 19 percent remaining in the 5-hour window and 58 percent remaining weekly. Appearance varies by terminal, font, and theme.</desc>
 
-  <rect width="960" height="600" rx="28" fill="url(#background)"/>
-  <rect x="1" y="1" width="958" height="598" rx="27" fill="none" stroke="#293548" stroke-width="2"/>
+  <rect width="431" height="273" fill="#1a1a1a"/>
 
-  <path d="M28 78h904" stroke="#263246" stroke-width="1"/>
-  <circle cx="45" cy="43" r="6" fill="#fb7185"/>
-  <circle cx="67" cy="43" r="6" fill="#fbbf24"/>
-  <circle cx="89" cy="43" r="6" fill="#34d399"/>
-  <text x="480" y="49" fill="#94a3b8" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" text-anchor="middle">opencode / session</text>
+  <g font-family="Cascadia Mono, JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="20" font-weight="500">
+    <text x="20" y="37" fill="#0087ff">OpenAI quota</text>
 
-  <rect x="64" y="108" width="832" height="416" rx="20" fill="#0e1726" stroke="#334155" stroke-width="1.5"/>
-  <rect x="64" y="108" width="5" height="416" rx="2.5" fill="url(#accent)"/>
+    <circle cx="26" cy="53" r="5" fill="#3cab58"/>
+    <text x="43" y="60" fill="#3cab58">Quota up to date</text>
 
-  <text x="100" y="157" fill="#7dd3fc" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="23" font-weight="700">OpenAI quota</text>
-  <rect x="676" y="128" width="183" height="34" rx="17" fill="#102d2a" stroke="#1f4d43"/>
-  <circle cx="696" cy="145" r="5" fill="#34d399"/>
-  <text x="710" y="150" fill="#6ee7b7" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">Quota up to date</text>
+    <text x="20" y="83" fill="#858585">5-hour</text>
+    <text x="404" y="83" fill="#e8e8e8" text-anchor="end">19% left</text>
+    <rect x="20" y="98" width="24" height="4" fill="#e34d61"/>
 
-  <path d="M96 184h768" stroke="#243247" stroke-width="1"/>
+    <text x="20" y="129" fill="#858585">Weekly</text>
+    <text x="404" y="129" fill="#e8e8e8" text-anchor="end">58% left</text>
+    <rect x="20" y="144" width="72" height="4" fill="#ffb000"/>
 
-  <text x="100" y="225" fill="#a6b2c5" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16">5-hour</text>
-  <text x="858" y="225" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="700" text-anchor="end">75% left</text>
-  <rect x="100" y="244" width="758" height="12" rx="6" fill="#263449"/>
-  <rect x="100" y="244" width="568.5" height="12" rx="6" fill="#34d399"/>
+    <text x="20" y="175" fill="#858585">Next reset · 5h · Oct 21, 10:12</text>
+    <text x="20" y="198" fill="#858585">PM · 33m</text>
 
-  <text x="100" y="303" fill="#a6b2c5" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16">Weekly</text>
-  <text x="858" y="303" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="700" text-anchor="end">60% left</text>
-  <rect x="100" y="322" width="758" height="12" rx="6" fill="#263449"/>
-  <rect x="100" y="322" width="454.8" height="12" rx="6" fill="#34d399"/>
-
-  <path d="M96 365h768" stroke="#243247" stroke-width="1"/>
-  <text x="100" y="399" fill="#94a3b8" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">Next reset</text>
-  <text x="204" y="399" fill="#dbe5f2" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">5h · Oct 21, 3:05 PM · 35m</text>
-  <text x="100" y="438" fill="#94a3b8" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">Updated 2:30:00 PM</text>
-
-  <rect x="96" y="463" width="768" height="1" fill="#243247"/>
-  <text x="100" y="495" fill="#8190a5" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">Manual refresh: command palette</text>
-
-  <text x="480" y="566" fill="#64748b" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" letter-spacing="1.4" text-anchor="middle">ILLUSTRATIVE PREVIEW · SYNTHETIC VALUES · NOT A SCREENSHOT</text>
+    <text x="20" y="221" fill="#858585">Updated 9:38:58 PM</text>
+    <text x="20" y="244" fill="#858585">Manual refresh: command palette</text>
+  </g>
 </svg>
