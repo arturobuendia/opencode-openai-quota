@@ -6,6 +6,7 @@ import {
   formatCountdown,
   formatLocalResetDate,
   parseQuotaPayload,
+  parseResetCredits,
   WEEKLY_WINDOW_SECONDS,
 } from "../src/quota.js";
 
@@ -56,6 +57,106 @@ test("zero and full usage remain distinct from missing data", () => {
   assert.equal(result.weekly.remainingPercent, 0);
   assert.equal(parseQuotaPayload({ rate_limit: {} }, now), undefined);
   assert.equal(parseQuotaPayload({ rate_limit: { primary_window: { used_percent: null } } }, now), undefined);
+});
+
+test("banked reset count and earliest complete expiration are parsed independently of quota windows", () => {
+  const payload = {
+    rate_limit_reset_credits: { available_count: 2 },
+    reset_credit_details: {
+      available_count: 2,
+      credits: [
+        {
+          reset_type: "codex_rate_limits",
+          status: "available",
+          expires_at: new Date(now + 5 * 86_400_000).toISOString(),
+        },
+        {
+          reset_type: "codex_rate_limits",
+          status: "available",
+          expires_at: new Date(now + 86_400_000).toISOString(),
+        },
+      ],
+    },
+  };
+
+  assert.deepEqual(parseResetCredits(payload, now), {
+    availableCount: 2,
+    nextExpirationAt: now + 86_400_000,
+    expirationStale: false,
+  });
+  assert.deepEqual(parseResetCredits({
+    rate_limit_reset_credits: { available_count: 0 },
+  }, now), {
+    availableCount: 0,
+    nextExpirationAt: null,
+    expirationStale: false,
+  });
+});
+
+test("missing, malformed, partial, and null-expiry reset details stay unavailable", () => {
+  const expiry = new Date(now + 86_400_000).toISOString();
+  const fullDetails = {
+    available_count: 2,
+    credits: [
+      { reset_type: "codex_rate_limits", status: "available", expires_at: expiry },
+      { reset_type: "codex_rate_limits", status: "available", expires_at: expiry },
+    ],
+  };
+  const usageCount = { rate_limit_reset_credits: { available_count: 2 } };
+  const incompletePayloads = [
+    usageCount,
+    { ...usageCount, reset_credit_details: { ...fullDetails, credits: fullDetails.credits.slice(0, 1) } },
+    { ...usageCount, reset_credit_details: { ...fullDetails, credits: [null, fullDetails.credits[1]] } },
+    {
+      ...usageCount,
+      reset_credit_details: {
+        ...fullDetails,
+        credits: [{ ...fullDetails.credits[0], expires_at: null }, fullDetails.credits[1]],
+      },
+    },
+    { ...usageCount, reset_credit_details: { ...fullDetails, credits: [{}, fullDetails.credits[1]] } },
+    {
+      ...usageCount,
+      reset_credit_details: {
+        ...fullDetails,
+        credits: [
+          { ...fullDetails.credits[0], reset_type: "unknown_reset_type" },
+          fullDetails.credits[1],
+        ],
+      },
+    },
+    {
+      ...usageCount,
+      reset_credit_details: {
+        ...fullDetails,
+        credits: [
+          { ...fullDetails.credits[0], expires_at: "2028-02-30T00:00:00Z" },
+          fullDetails.credits[1],
+        ],
+      },
+    },
+  ];
+
+  for (const payload of incompletePayloads) {
+    assert.deepEqual(parseResetCredits(payload, now), {
+      availableCount: 2,
+      nextExpirationAt: null,
+      expirationStale: false,
+    });
+  }
+
+  assert.equal(parseResetCredits({}, now), null);
+  assert.equal(parseResetCredits({
+    rate_limit_reset_credits: { available_count: "0" },
+  }, now), null);
+  assert.deepEqual(parseResetCredits({
+    ...usageCount,
+    reset_credit_details: { ...fullDetails, available_count: 1 },
+  }, now), {
+    availableCount: 1,
+    nextExpirationAt: null,
+    expirationStale: false,
+  });
 });
 
 test("unknown explicit windows are not guessed into a quota", () => {

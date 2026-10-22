@@ -153,6 +153,22 @@ try {
         reset_at: visualNow / 1_000 + 172_800,
       },
     },
+    rate_limit_reset_credits: { available_count: 2 },
+    reset_credit_details: {
+      available_count: 2,
+      credits: [
+        {
+          reset_type: "codex_rate_limits",
+          status: "available",
+          expires_at: "2026-10-21T14:31:30Z",
+        },
+        {
+          reset_type: "codex_rate_limits",
+          status: "available",
+          expires_at: "2026-11-30T14:30:00Z",
+        },
+      ],
+    },
   };
   const changedVisualPayload = {
     rate_limit: {
@@ -166,6 +182,17 @@ try {
         limit_window_seconds: 604_800,
         reset_at: visualNow / 1_000 + 172_800,
       },
+    },
+    rate_limit_reset_credits: { available_count: 1 },
+    reset_credit_details: {
+      available_count: 1,
+      credits: [
+        {
+          reset_type: "codex_rate_limits",
+          status: "available",
+          expires_at: "2026-10-24T14:30:00Z",
+        },
+      ],
     },
   };
   const changedAgainVisualPayload = {
@@ -181,6 +208,29 @@ try {
         reset_at: visualNow / 1_000 + 172_800,
       },
     },
+    rate_limit_reset_credits: { available_count: 0 },
+  };
+  const incompleteVisualPayload = {
+    ...changedAgainVisualPayload,
+    rate_limit_reset_credits: { available_count: 1 },
+    reset_credit_details: {
+      available_count: 1,
+      credits: [{
+        reset_type: "codex_rate_limits",
+        status: "available",
+        expires_at: null,
+      }],
+    },
+  };
+  const unavailableVisualPayload = {
+    ...changedAgainVisualPayload,
+    rate_limit_reset_credits: { available_count: "unknown" },
+  };
+  const staleDetailsVisualPayload = {
+    ...changedAgainVisualPayload,
+    rate_limit_reset_credits: { available_count: 3 },
+    reset_credit_details: null,
+    reset_credit_details_stale: true,
   };
 
   await initializeQuotaPlugin(visualApi, {
@@ -215,6 +265,22 @@ try {
 
       if (fetchCalls === 4) {
         return changedAgainVisualPayload;
+      }
+
+      if (fetchCalls === 5) {
+        return unavailableVisualPayload;
+      }
+
+      if (fetchCalls === 6) {
+        return incompleteVisualPayload;
+      }
+
+      if (fetchCalls === 7) {
+        return changedVisualPayload;
+      }
+
+      if (fetchCalls === 8) {
+        return staleDetailsVisualPayload;
       }
 
       throw new Error(`synthetic network error: ${syntheticToken}`);
@@ -264,6 +330,9 @@ try {
   );
   assert.match(readyFrame, /75% left/);
   assert.match(readyFrame, /60% left/);
+  assert.match(readyFrame, /Banked resets · 2 available/);
+  assert.match(readyFrame, /Next expiry · .* · 2m/);
+  assert.equal(readyFrame.includes("Manual refresh: command palette"), false);
   assert.match(readyFrame, /Updated \d{1,2}:\d{2}:\d{2}/);
   assert.equal(fetchCalls, 1);
   assert.equal(visualRegistrations.length, 1);
@@ -306,6 +375,7 @@ try {
   assert.equal(fetchCalls, 2);
 
   const initialResetLine = refreshedFrame.match(/Next reset[^\r\n]*/)?.[0];
+  const initialExpiryLine = refreshedFrame.match(/Next expiry[^\r\n]*/)?.[0];
   visualNow += 30_000;
   visualTimers.scheduled[1].callback();
 
@@ -315,6 +385,8 @@ try {
     "A countdown clock tick did not update the mounted panel.",
   );
   assert.match(clockFrame, /Next reset · 5h · .* · 1m/);
+  assert.notEqual(clockFrame.match(/Next expiry[^\r\n]*/)?.[0], initialExpiryLine);
+  assert.match(clockFrame, /Next expiry · .* · <1m/);
   assert.equal(visualRegistrations.length, 1);
   assert.equal(visualSlotInvocations, 1);
 
@@ -326,9 +398,11 @@ try {
     visualSetup,
     (currentFrame) => currentFrame.includes("Quota up to date")
       && currentFrame.includes("58% left")
-      && currentFrame.includes("45% left"),
+      && currentFrame.includes("45% left")
+      && currentFrame.includes("Banked resets · 1 available"),
     "A refreshed quota percentage change did not reach the mounted panel.",
   );
+  assert.match(changedFrame, /Next expiry · .* · 3d/);
   assert.notEqual(changedFrame.match(/Updated[^\r\n]*/)?.[0], beforeChangedUpdatedLine);
   assert.equal(fetchCalls, 3);
   assert.equal(visualRegistrations.length, 1);
@@ -341,12 +415,61 @@ try {
     visualSetup,
     (currentFrame) => currentFrame.includes("Quota up to date")
       && currentFrame.includes("34% left")
-      && currentFrame.includes("20% left"),
+      && currentFrame.includes("20% left")
+      && currentFrame.includes("Banked resets · 0 available")
+      && currentFrame.includes("Next expiry · none"),
     "A second polling quota percentage change did not reach the mounted panel.",
   );
   assert.equal(fetchCalls, 4);
   assert.equal(visualRegistrations.length, 1);
   assert.equal(visualSlotInvocations, 1);
+
+  visualNow += 5_000;
+  visualKeymapLayers[0].commands[0].run();
+  const unavailableFrame = await renderUntil(
+    visualSetup,
+    (currentFrame) => currentFrame.includes("Banked resets · unavailable")
+      && currentFrame.includes("Next expiry · unavailable"),
+    "Missing or malformed reset count did not render as unavailable.",
+  );
+  assert.match(unavailableFrame, /20% left/);
+  assert.equal(fetchCalls, 5);
+
+  visualNow += 5_000;
+  visualKeymapLayers[0].commands[0].run();
+  const incompleteFrame = await renderUntil(
+    visualSetup,
+    (currentFrame) => currentFrame.includes("Banked resets · 1 available")
+      && currentFrame.includes("Next expiry · unavailable"),
+    "An incomplete reset detail list did not render an unavailable expiration.",
+  );
+  assert.match(incompleteFrame, /34% left/);
+  assert.equal(fetchCalls, 6);
+
+  visualNow += 5_000;
+  visualKeymapLayers[0].commands[0].run();
+  const recoveredFrame = await renderUntil(
+    visualSetup,
+    (currentFrame) => currentFrame.includes("Quota up to date")
+      && currentFrame.includes("Banked resets · 1 available")
+      && /Next expiry · .* · 2d 23h/.test(currentFrame),
+    "A valid detail refresh did not restore its current expiration.",
+  );
+  assert.match(recoveredFrame, /58% left/);
+  assert.equal(fetchCalls, 7);
+
+  visualNow += 5_000;
+  visualKeymapLayers[0].commands[0].run();
+  const freshCountStaleExpiryFrame = await renderUntil(
+    visualSetup,
+    (currentFrame) => currentFrame.includes("Quota up to date")
+      && currentFrame.includes("Banked resets · 3 available")
+      && currentFrame.includes("Last known expiry"),
+    "A detail-only timeout mislabeled its fresh count as stale.",
+  );
+  assert.match(freshCountStaleExpiryFrame, /34% left/);
+  assert.equal(freshCountStaleExpiryFrame.includes("Last known banked resets"), false);
+  assert.equal(fetchCalls, 8);
 
   visualNow += 5_000;
   visualKeymapLayers[0].commands[0].run();
@@ -357,8 +480,10 @@ try {
   );
   assert.match(staleFrame, /34% left/);
   assert.match(staleFrame, /20% left/);
+  assert.match(staleFrame, /Last known banked resets · 3 available/);
+  assert.match(staleFrame, /Last known expiry/);
   assert.equal(staleFrame.includes(syntheticToken), false);
-  assert.equal(fetchCalls, 5);
+  assert.equal(fetchCalls, 9);
   assert.equal(visualRegistrations.length, 1);
   assert.equal(visualSlotInvocations, 1);
   const staleSpans = visualSetup.captureSpans().lines.flatMap(({ spans: lineSpans }) => lineSpans);
@@ -384,7 +509,7 @@ try {
   await visualSetup.renderOnce();
   assert.equal(visualSetup.captureCharFrame(), narrowFrame);
   assert.equal(credentialReads, readsBeforeDisposedTimerCallbacks);
-  assert.equal(fetchCalls, 5);
+  assert.equal(fetchCalls, 9);
   assert.equal(visualSlotInvocations, 1);
 } finally {
   renderer?.destroy();

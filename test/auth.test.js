@@ -6,6 +6,7 @@ import {
   classifyOpenAICredential,
   getOpenCodeAuthPath,
   readOpenAICredential,
+  RESET_CREDITS_ENDPOINT,
   requestOpenAIUsage,
   USAGE_ENDPOINT,
 } from "../src/auth.js";
@@ -195,6 +196,118 @@ test("usage request is pinned to OpenAI, forbids redirects, and omits cookies", 
   assert.deepEqual(received, payload);
 });
 
+test("usage request reads reset details from the fixed OpenAI endpoint", async () => {
+  const access = randomUUID();
+  const requests = [];
+  const usagePayload = {
+    rate_limit: { primary_window: { used_percent: 20 } },
+    rate_limit_reset_credits: { available_count: 2 },
+  };
+  const resetCreditDetails = {
+    available_count: 2,
+    credits: [
+      {
+        id: "synthetic-credit-1",
+        reset_type: "codex_rate_limits",
+        status: "available",
+        granted_at: "2026-10-01T00:00:00Z",
+        expires_at: "2026-10-31T00:00:00Z",
+      },
+      {
+        id: "synthetic-credit-2",
+        reset_type: "codex_rate_limits",
+        status: "available",
+        granted_at: "2026-10-02T00:00:00Z",
+        expires_at: "2026-11-01T00:00:00Z",
+      },
+    ],
+  };
+  const received = await requestOpenAIUsage({
+    accessToken: access,
+    accountId: "org_synthetic",
+  }, {
+    fetchImpl: async (url, options) => {
+      requests.push({ url, options });
+      return new Response(JSON.stringify(
+        url === USAGE_ENDPOINT ? usagePayload : resetCreditDetails,
+      ), { headers: { "content-type": "application/json" } });
+    },
+  });
+
+  assert.deepEqual(requests.map(({ url }) => url), [USAGE_ENDPOINT, RESET_CREDITS_ENDPOINT]);
+  assert.equal(new URL(RESET_CREDITS_ENDPOINT).protocol, "https:");
+  assert.equal(new URL(RESET_CREDITS_ENDPOINT).hostname, "chatgpt.com");
+  for (const { options } of requests) {
+    assert.equal(options.redirect, "error");
+    assert.equal(options.credentials, "omit");
+    assert.equal(options.cache, "no-store");
+    assert.equal(options.headers.authorization, `Bearer ${access}`);
+    assert.equal(options.headers["ChatGPT-Account-Id"], "org_synthetic");
+  }
+  assert.deepEqual(received, {
+    ...usagePayload,
+    reset_credit_details: resetCreditDetails,
+  });
+});
+
+test("reset detail failures keep the usage count and flag transient metadata as stale", async () => {
+  const usagePayload = {
+    rate_limit: { primary_window: { used_percent: 20 } },
+    rate_limit_reset_credits: { available_count: 2 },
+  };
+  let requests = 0;
+  const received = await requestOpenAIUsage({ accessToken: randomUUID() }, {
+    fetchImpl: async () => {
+      requests += 1;
+      return requests === 1
+        ? new Response(JSON.stringify(usagePayload))
+        : new Response("temporary failure", { status: 503 });
+    },
+  });
+
+  assert.equal(requests, 2);
+  assert.deepEqual(received, {
+    ...usagePayload,
+    reset_credit_details: null,
+    reset_credit_details_stale: true,
+  });
+});
+
+test("caller abort during reset detail lookup is not downgraded to a partial success", async () => {
+  const caller = new AbortController();
+  const usagePayload = {
+    rate_limit: { primary_window: { used_percent: 20 } },
+    rate_limit_reset_credits: { available_count: 1 },
+  };
+  let requests = 0;
+  let detailSignal;
+  const pending = requestOpenAIUsage({ accessToken: randomUUID() }, {
+    signal: caller.signal,
+    fetchImpl: async (_url, options) => {
+      requests += 1;
+
+      if (requests === 1) {
+        return new Response(JSON.stringify(usagePayload));
+      }
+
+      detailSignal = options.signal;
+      return new Promise((resolve, reject) => {
+        detailSignal.addEventListener("abort", () => reject(new Error("synthetic abort")), {
+          once: true,
+        });
+      });
+    },
+  });
+
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(requests, 2);
+  caller.abort();
+
+  await assert.rejects(pending, (error) =>
+    error.kind === "aborted" && error.message === "Quota request failed");
+  assert.equal(detailSignal.aborted, true);
+});
+
 test("redirect responses and unauthorized OAuth responses are sanitized", async () => {
   await assert.rejects(
     requestOpenAIUsage({ accessToken: randomUUID() }, {
@@ -209,6 +322,22 @@ test("redirect responses and unauthorized OAuth responses are sanitized", async 
   await assert.rejects(
     requestOpenAIUsage({ accessToken: randomUUID() }, {
       fetchImpl: async () => new Response(null, { status: 401 }),
+    }),
+    (error) => error.kind === "expired" && error.message === "Quota request failed",
+  );
+
+  let requests = 0;
+  await assert.rejects(
+    requestOpenAIUsage({ accessToken: randomUUID() }, {
+      fetchImpl: async () => {
+        requests += 1;
+        return requests === 1
+          ? new Response(JSON.stringify({
+            rate_limit: { primary_window: { used_percent: 20 } },
+            rate_limit_reset_credits: { available_count: 1 },
+          }))
+          : new Response(null, { status: 401 });
+      },
     }),
     (error) => error.kind === "expired" && error.message === "Quota request failed",
   );
