@@ -3,12 +3,15 @@
 <p align="center">Codex subscription quota in your OpenCode 2 sidebar — read from your local Codex CLI, with no tokens copied and no inference spent.</p>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/opencode-openai-quota"><img src="https://img.shields.io/npm/v/opencode-openai-quota?style=flat-square&label=npm&color=cb3837" alt="npm version"></a>
   <a href="#requirements"><img src="https://img.shields.io/badge/OpenCode-2%20TUI%20plugin-7357d5?style=flat-square" alt="OpenCode 2 TUI plugin"></a>
   <a href="#how-it-reads-quota"><img src="https://img.shields.io/badge/Quota-local%20Codex%20app--server-159b83?style=flat-square" alt="Quota from the local Codex app-server"></a>
   <a href="#privacy-and-network-behavior"><img src="https://img.shields.io/badge/Tokens-never%20touched-0b7285?style=flat-square" alt="Tokens are never read"></a>
 </p>
 
-<p align="center"><a href="#quick-install"><strong>Quick install ↓</strong></a></p>
+<p align="center"><code>opencode plugin add opencode-openai-quota</code></p>
+
+<p align="center"><a href="#quick-install"><strong>Other install options ↓</strong></a></p>
 
 <p align="center">
   <img src="docs/assets/quota-preview.svg" alt="Recreation of the OpenCode 2 quota panel showing a 5-hour session window with 68 percent remaining, a weekly window with 9 percent remaining in red, two available banked resets, and the next reported expiration." width="440">
