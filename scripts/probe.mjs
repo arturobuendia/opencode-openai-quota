@@ -4,7 +4,7 @@ try {
   const snapshot = normalizeQuota(await readCodexRateLimits())
   for (const name of ["session", "weekly"]) {
     const w = snapshot[name]
-    console.log(`${name}:`, w ? `${Math.round(w.remainingPercent)}% remaining; reset in ${remainingText(w.resetsAt)}` : "unavailable")
+    console.log(`${name}:`, w ? `${Math.round(w.remainingPercent)}% remaining; reset ${remainingText(w.resetsAt)}` : "unavailable")
   }
   console.log(`Banked resets: ${snapshot.bankedAvailable ?? "unavailable"}`)
   console.log(`Next expiration: ${snapshot.nextExpiration ? remainingText(snapshot.nextExpiration) : "unavailable"}`)
