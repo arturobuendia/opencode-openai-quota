@@ -284,3 +284,7 @@ opencode plugin remove opencode-openai-quota
 ```
 
 If you installed from a source checkout instead, run `.\uninstall.ps1`, which removes only `<config>/plugins/openai-quota`. If you configured a path in `opencode.json`/`cli.json`, delete that entry. Run `/reload` afterwards; backups under `<config>/openai-quota-backups/` are yours to delete.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

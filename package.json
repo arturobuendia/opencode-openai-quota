@@ -2,6 +2,7 @@
   "name": "opencode-openai-quota",
   "version": "0.3.0",
   "description": "OpenAI Codex subscription quota in your OpenCode 2 sidebar, read locally from the Codex CLI.",
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
