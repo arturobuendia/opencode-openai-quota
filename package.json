@@ -1,13 +1,21 @@
 {
-  "name": "opencode-openai-quota",
-  "version": "0.1.0",
+  "name": "opencode-openai-quota-v2",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=20"
+  "exports": {
+    ".": "./src/index.ts",
+    "./tui": "./src/tui.tsx"
+  },
+  "peerDependencies": {
+    "@opencode/plugin": "*",
+    "@opentui/core": ">=0.6.6",
+    "@opentui/solid": ">=0.6.6",
+    "solid-js": ">=1.9.0"
   },
   "scripts": {
-    "test": "node --test",
-    "check": "node --check src/auth.js && node --check src/quota.js && node --check src/tui.js && bun run scripts/host-harness.bun.js"
+    "test": "node --test test/*.test.mjs",
+    "probe": "node scripts/probe.mjs",
+    "check": "node --check src/codex.js && node --check src/quota.js && node --check src/refresh.js && npm test"
   }
 }

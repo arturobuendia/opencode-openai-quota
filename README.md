@@ -1,123 +1,224 @@
-<h1 align="center">OpenAI Quota for OpenCode</h1>
+<h1 align="center">OpenAI Quota for OpenCode 2</h1>
 
-<p align="center">See how much OpenAI subscription quota remains without leaving OpenCode.</p>
+<p align="center">Codex subscription quota in your OpenCode 2 sidebar — read from your local Codex CLI, with no tokens copied and no inference spent.</p>
 
 <p align="center">
-  <a href="#quick-install"><img src="https://img.shields.io/badge/OpenCode-TUI%20plugin-7357d5?style=flat-square" alt="OpenCode TUI plugin"></a>
-  <a href="#quick-install"><img src="https://img.shields.io/badge/Install-from%20source-159b83?style=flat-square" alt="Install from source"></a>
+  <a href="#requirements"><img src="https://img.shields.io/badge/OpenCode-2%20TUI%20plugin-7357d5?style=flat-square" alt="OpenCode 2 TUI plugin"></a>
+  <a href="#how-it-reads-quota"><img src="https://img.shields.io/badge/Quota-local%20Codex%20app--server-159b83?style=flat-square" alt="Quota from the local Codex app-server"></a>
+  <a href="#privacy-and-network-behavior"><img src="https://img.shields.io/badge/Tokens-never%20touched-0b7285?style=flat-square" alt="Tokens are never read"></a>
 </p>
 
 <p align="center"><a href="#quick-install"><strong>Quick install ↓</strong></a></p>
 
 <p align="center">
-  <img src="docs/assets/quota-preview.svg" alt="Recreation of an OpenCode quota panel with remaining quota, next reset details, two available banked resets, and the next reported expiration." width="431">
+  <img src="docs/assets/quota-preview.svg" alt="Recreation of the OpenCode 2 quota panel showing a 5-hour session window with 68 percent remaining, a weekly window with 9 percent remaining in red, two available banked resets, and the next reported expiration." width="440">
 </p>
 
-<p align="center"><sub>SVG recreation of the actual panel with example values—not a captured screenshot. Appearance varies by terminal, font, and theme.</sub></p>
+<p align="center"><sub>SVG recreation of the panel with example values—not a captured screenshot. Colors come from your theme; balances at or below 25% turn amber and at or below 10% turn red.</sub></p>
 
 ## What it does
 
-Adds a small quota panel to OpenCode's sidebar so you can see the 5-hour and weekly OpenAI subscription windows, their remaining percentages, the next known reset time, and available banked Codex resets. It uses quota information OpenAI returns for an OpenAI OAuth login; it is not an API billing, usage-credit, token, or cost tracker.
+Adds a small panel to OpenCode 2's sidebar with the OpenAI Codex subscription windows that are active on your machine:
+
+- **Session (5h)** and **Weekly** windows, with the duration derived from the window Codex reports.
+- **Remaining quota**, not used quota. A window with `63% used` renders as `37% remaining`.
+- The **next reset** for each window as a live countdown.
+- **Available banked resets** and their next known expiration.
+- **Freshness**: when the numbers were last read, and an explicit warning when the read failed.
+
+It is a quota panel, not an API billing, usage-credit, token, or cost tracker.
+
+## How it reads quota
+
+This is the part that changed for OpenCode 2. There is no OAuth token handling and no HTTP call to OpenAI:
+
+```
+OpenCode 2 TUI  ──spawn──▶  codex app-server  ──JSON-RPC over stdio──▶  account/rateLimits/read
+```
+
+1. The TUI plugin starts a **short-lived `codex app-server`** process.
+2. It performs the `initialize` handshake, sends `initialized`, then asks for `account/rateLimits/read`.
+3. It closes stdin so Codex exits on its own, and kills the child if it lingers.
+4. The raw payload is normalized defensively: anything missing or malformed is shown as **unavailable** instead of being guessed.
+
+No model turn is created, so **checking the panel never consumes quota**. The plugin never reads `auth.json` or any credential snapshot, and it never sends your token anywhere.
+
+## Requirements
+
+- **OpenCode 2** with the TUI plugin API (`@opencode/plugin/tui`).
+- **Codex CLI** installed and logged in with the ChatGPT account whose quota you want to see:
+
+  ```sh
+  codex --version
+  codex login status
+  ```
+
+  If it is not installed or not logged in, the panel says so instead of showing numbers.
+
+> The panel reports the account signed into your **local Codex CLI**. If OpenCode uses a different OpenAI account, the numbers you see are still correct—for the Codex account, not necessarily the OpenCode one.
 
 ## Quick install
 
-> This is a source-checkout install. The package is marked `private` in `package.json`, so there is no published npm package to install.
+> Source checkout only: `package.json` is marked `private`, so there is no npm package to install.
 
-### 1. Get the source
+### Option A — installer script (Windows)
 
-Clone the repository into a permanent folder; OpenCode uses the checkout path after configuration.
-
-```sh
+```powershell
 git clone https://github.com/arturobuendia/opencode-openai-quota.git
+cd opencode-openai-quota
+.\install.ps1
 ```
 
-Keep the checkout in place after configuring the plugin.
+The script copies the plugin into OpenCode's global discovery folder:
 
-### 2. Add the local plugin to `tui.json`
+```text
+<config>/plugins/openai-quota/
+├── index.ts      # server part
+├── tui.tsx       # TUI part
+├── package.json
+├── tsconfig.json
+└── src/          # codex.js, quota.js, refresh.js, index.ts, tui.tsx
+```
 
-OpenCode's TUI plugin configuration is **`tui.json`** (not `opencode.json` or `opencode.jsonc`). Add the plugin's absolute `file:` URL to the top-level `plugin` array. If the file already exists, merge this entry into its existing array and preserve the other settings and plugins.
+`<config>` is `%USERPROFILE%\.config\opencode` on Windows, `~/.config/opencode` (or `$XDG_CONFIG_HOME/opencode`) on macOS/Linux, or the directory selected by `OPENCODE_CONFIG_DIR`.
 
-Default config locations:
+An existing install is moved to `<config>/openai-quota-backups/` before the copy—never inside `plugins/`, where OpenCode would discover both copies. The script does not touch `opencode.json`, `cli.json`, `auth.json`, or your other plugins.
 
-- **Windows:** `%USERPROFILE%\.config\opencode\tui.json`
-- **macOS/Linux:** `~/.config/opencode/tui.json` (or `$XDG_CONFIG_HOME/opencode/tui.json` when `XDG_CONFIG_HOME` is set)
-- **Any platform:** use `tui.json` inside the directory selected by `OPENCODE_CONFIG_DIR`, if set.
+### Option B — manual, any platform
 
-Example `tui.json`:
+Copy the same files into the discovery folder:
 
-```json
+```sh
+mkdir -p ~/.config/opencode/plugins/openai-quota
+cp -R src index.ts tui.tsx tsconfig.json package.json ~/.config/opencode/plugins/openai-quota/
+```
+
+Or point OpenCode at the checkout from `opencode.json`, which loads both the server and TUI parts of the package:
+
+```jsonc
 {
-  "$schema": "https://opencode.ai/tui.json",
-  "plugin": [
-    "file:///ABSOLUTE/PATH/TO/opencode-openai-quota/src/tui.js"
+  "$schema": "https://opencode.ai/config.json",
+  "plugins": [
+    "C:/Users/YOU/Projects/opencode-openai-quota"
   ]
 }
 ```
 
-Replace the example URL with the absolute path to `src/tui.js` in your extracted checkout. Use forward slashes in the URL; URL-encode spaces as `%20`.
+`file:///C:/Users/YOU/Projects/opencode-openai-quota` and relative paths such as `./plugins/openai-quota` are accepted too. Use `cli.json` instead when the TUI talks to a **remote** server and the plugin must run locally:
 
-```text
-Windows:  file:///C:/Users/YOU/Projects/opencode-openai-quota/src/tui.js
-macOS:    file:///Users/YOU/Projects/opencode-openai-quota/src/tui.js
-Linux:    file:///home/YOU/Projects/opencode-openai-quota/src/tui.js
+```json
+{
+  "plugins": ["C:/Users/YOU/Projects/opencode-openai-quota"]
+}
 ```
 
-### 3. Restart OpenCode and connect OpenAI
-
-Restart OpenCode so it loads the TUI configuration. Sign in to OpenAI through OpenCode's normal **OAuth** login flow; the plugin reuses that existing login and does not ask you to copy or share a token. API-key authentication does not provide the subscription quota shown here.
+Keep the checkout in place after configuring it. OpenCode reloads plugins when configuration changes; if the panel does not appear, run `/reload`.
 
 ## What appears in the sidebar
 
-The panel shows:
+```text
+OpenAI Quota
+Updated just now
 
-- **5-hour** and **Weekly** windows when those windows are present in the usage response.
-- **Remaining quota**, not used quota. For example, `25% used` is displayed as `75% left`.
-- The **earliest known reset**, formatted in local time with a countdown. If no reset is available, the panel says so.
-- **Available banked resets**, including a genuine `0`, and the next expiration when the service provides a complete, valid detail list. The count is unavailable if the usage response lacks a valid count; expiration is unavailable when reset details are missing, incomplete, inconsistent, or have an unknown expiration.
-- Banked resets are manually redeemable benefits, separate from automatic resets and purchased usage credits. The plugin only displays their count and expiration; it never redeems them. See [OpenAI's reset guide](https://help.openai.com/en/articles/20001498-how-resets-work-in-codex) for the distinctions and offer terms.
-- Refresh status and the time of the last successful update.
+Session (5h)
+━━━━━━━━━━━━━━━━───────
+68% remaining
+Resets in 4h 12m
 
-The plugin refreshes on startup and every **2 minutes**. The countdown clock updates every **30 seconds**. To refresh sooner, open OpenCode's command palette and choose **Refresh OpenAI quota** (category **OpenAI quota**).
+Weekly
+━━━────────────────────
+9% remaining
+Resets in 2d 7h
 
-| Sidebar message | Meaning |
+───────────────────────
+2 available banked resets
+Next expires in 9d
+```
+
+- **Window titles** follow the duration Codex reports: `Session (5h)` and `Weekly` for the usual windows, otherwise the generic name plus the real duration.
+- **Balances** are remaining percentages; the bar length follows the value, so a tiny nonzero balance is still visibly nonzero.
+- **Resets** are relative (`in 3d 4h`), recalculated every 30 seconds. A window the service gives no reset time for says `Reset unavailable`.
+- **Banked resets** are manual redemption benefits, separate from automatic resets and purchased credits. The panel shows a genuine `0`, says `Banked resets: unavailable` when the count is missing or malformed, and only shows an expiration when every available reset has a complete, valid timestamp. It never redeems anything. See [OpenAI's reset guide](https://help.openai.com/en/articles/20001498-how-resets-work-in-codex) for the distinctions and offer terms.
+
+### Reading the status line
+
+| Panel content | Meaning |
 | --- | --- |
-| `Quota up to date` | Latest request returned quota data. |
-| `Connection issue · showing last good quota` | A refresh failed; the last successful values remain visible as stale data. |
-| `Session expired · reconnect in OpenCode` | Reconnect the OpenAI OAuth account in OpenCode. |
-| `API key auth · subscription quota n/a` | OpenCode is using API-key auth; subscription quota is not available through that login. |
-| `Connect OpenAI OAuth` | OpenCode does not currently have an OpenAI OAuth login. |
-| `Quota unavailable · will retry` | No usable quota is available yet; the plugin will try again. |
+| `Updated just now` / `Updated 4m ago` | Time of the last successful read. |
+| `Checking · Updated 4m ago` | A read is running; the previous numbers stay visible. |
+| `Reading Codex…` | First read in progress, nothing to show yet. |
+| `Unavailable` | No successful read yet and none in flight. |
+| `Refresh failed · showing saved data` | The last read failed; the previous good numbers stay on screen. |
+| `Cannot read Codex quota` | No usable numbers yet plus the reason, for example Codex missing from `PATH`, not logged in, or the 15-second timeout. |
+| `Try /quota-refresh` | The suggested next step while nothing is displayed. |
 
-## Compatibility
+## When it refreshes
 
-Use **OpenCode CLI/TUI 1.18.35 or newer** as a conservative documented baseline. The [upstream v1.18.35 TUI plugin reference](https://github.com/anomalyco/opencode/blob/v1.18.35/packages/opencode/specs/tui-plugins.md) documents `tui.json`, local `file:` plugin paths, and the sidebar, command-palette, and lifecycle APIs this plugin uses. This repository does not declare a formal `engines.opencode` range, so older versions are not guaranteed.
+- On startup.
+- **7 seconds after a session execution succeeds**, so Codex can publish the new numbers first.
+- Every **2 minutes**, as a safety net.
+- Immediately when a displayed reset time has passed, so a reset window does not sit at 0% until the next poll.
+- The countdown text alone re-renders every **30 seconds**; the panel does not re-read Codex for that.
 
-The plugin uses OpenCode's TUI/Solid runtime; you do not need to install a separate `solid-js` package for it.
+Automatic attempts respect a **60-second cooldown**, and overlapping requests share a single read instead of starting a second `codex` process. A manual refresh skips the cooldown; reset-triggered and post-execution reads wait for it like any other automatic attempt.
+
+### Manual refresh
+
+- Command palette: **Refresh OpenAI quota** (group **OpenAI quota**).
+- Slash command: **`/quota-refresh`**.
 
 ## Privacy and network behavior
 
-Quota refresh uses OpenAI's fixed HTTPS usage endpoint, `https://chatgpt.com/backend-api/wham/usage`, and, when available banked resets are reported, its reset-detail endpoint, `https://chatgpt.com/backend-api/wham/rate-limit-reset-credits`. Both requests use the OAuth credential OpenCode already manages, reject redirects, omit cookies, disable caching, and do not send a referrer. The credential is used in-process and is not included in the sidebar snapshot or sanitized request errors. This makes direct network requests to `chatgpt.com` when quota is refreshed.
+- The plugin makes **no HTTP requests of its own** and holds **no credentials**.
+- It does not read `auth.json`, `OPENCODE_AUTH_CONTENT`, or any token file.
+- The only side effect is a local child process per read: `codex app-server`, with a 15-second timeout, stdin closed to let it exit, and a kill if it does not.
+- Codex `stderr` is drained but never rendered, so diagnostics that may contain private data cannot leak into the sidebar.
+- Errors shown in the panel never include tokens or full command output.
+
+## Configuration
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `OPENCODE_QUOTA_CODEX` | `codex` | Command used to start Codex. Point it at another executable or shim. On Windows it runs through the shell, so only use a value you trust. |
+
+## Compatibility
+
+Targets **OpenCode 2** and its built-in TUI plugin API. OpenCode resolves `@opencode/plugin`, `@opentui/*`, and `solid-js` at runtime, so the checkout declares them as peer dependencies and you do not install them yourself. No `engines.opencode` range is declared; older or newer TUI APIs are not guaranteed.
 
 ## Troubleshooting
 
-- **No panel after restart:** confirm the entry is in `tui.json`, the JSON is valid, and the absolute `file:` URL points to this checkout's `src/tui.js`.
-- **API-key or not-connected message:** connect OpenAI through OpenCode with OAuth; an API key is not a substitute for subscription quota access.
-- **Expired or connection issue:** reconnect if prompted. For a temporary network failure, the last good values stay visible; use **Refresh OpenAI quota** to retry.
-- **Quota reset says unavailable:** the service did not provide a usable reset time for the returned window.
-- **Banked reset expiration says unavailable:** the count may still be known, but the service did not provide a complete, consistent list of available resets with valid expiration timestamps. The plugin does not infer expiration from regular quota reset times.
+- **No panel:** confirm the folder is `<config>/plugins/openai-quota`, or that the checkout path is listed in `opencode.json`/`cli.json`; then run `/reload`.
+- **`Cannot read Codex quota`:** read the message under it. `codex` missing from `PATH` → install the Codex CLI. Not logged in → run `codex login`. Timeout → the app-server took longer than 15 seconds.
+- **Numbers look wrong:** check which account the local CLI is using with `codex login status`. The panel follows Codex, not OpenCode.
+- **Verify outside OpenCode:** `npm run probe` prints the same snapshot the panel uses, or fails with the underlying reason.
+- **Banked reset expiration says unavailable:** the count can still be right while the detail list is missing, incomplete, or uses an unknown expiration. The plugin never infers an expiration from a normal reset time.
+- **No weekly or no session row:** Codex only returned one window. The plugin shows what exists and never invents the other.
 
 ## Development
 
-Node.js **20 or newer** is required for the package's development/test scripts. No npm dependencies are declared by this package.
+Node.js **20 or newer** is required for the development scripts. The package declares no runtime dependencies.
 
 ```sh
-npm test
-npm run check
+npm test        # offline suite: codex handshake, normalization, refresh, labels
+npm run probe   # one real read through your local codex app-server
+npm run check   # syntax-check the source modules, then run the suite
 ```
 
-- `npm test` runs the offline Node.js test suite.
-- `npm run check` syntax-checks the source and runs the Bun TUI host harness. It requires Bun and the OpenCode TUI packages to be resolvable from OpenCode's config directory.
+Tests use a synthetic Codex fixture (`test/fake-codex.mjs`) and injected clocks, so they stay offline and never read real credentials.
+
+| Path | Role |
+| --- | --- |
+| `src/index.ts` | Server part. Registers no resources; the work happens in the TUI. |
+| `src/tui.tsx` | Panel, sidebar slot, `/quota-refresh` command, scheduling, and disposal. |
+| `src/codex.js` | Spawns `codex app-server` and runs the JSON-RPC handshake. |
+| `src/quota.js` | Normalizes the payload; formats percentages, bars, and relative times. |
+| `src/refresh.js` | Cooldown and coalescing so only one read runs at a time. |
+| `install.ps1`, `uninstall.ps1` | Global discovery install and removal. |
 
 ## Uninstall
 
-Remove this plugin's `file:` URL from the `plugin` array in `tui.json`, preserve any other entries, and restart OpenCode. You can then delete the source checkout.
+```powershell
+.\uninstall.ps1
+```
+
+It removes only `<config>/plugins/openai-quota`. If you installed through configuration instead, delete that entry from `opencode.json`/`cli.json`, then run `/reload`. Backups under `<config>/openai-quota-backups/` are yours to delete.
