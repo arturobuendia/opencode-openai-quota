@@ -1,29 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 431 315" role="img" aria-labelledby="title description">
-  <title id="title">Recreated OpenAI quota panel</title>
-  <desc id="description">An SVG recreation of the OpenCode quota panel, not a captured screenshot. Example values show 19 percent remaining in the 5-hour window, 58 percent remaining weekly, two available banked resets, and their next reported expiration. Appearance varies by terminal, font, and theme.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 376" role="img" aria-labelledby="title description">
+  <title id="title">Recreated OpenAI quota sidebar panel</title>
+  <desc id="description">An SVG recreation of the OpenCode 2 quota panel, not a captured screenshot. Example values show 68 percent remaining in the 5-hour session window, 9 percent remaining weekly in red, two available banked resets, and their next reported expiration. Colors follow the active OpenCode theme; balances at or below 25 percent turn amber and at or below 10 percent turn red.</desc>
 
-  <rect width="431" height="315" fill="#1a1a1a"/>
+  <rect width="440" height="376" rx="8" fill="#1a1a1a" stroke="#2b2f36"/>
 
-  <g font-family="Cascadia Mono, JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="20" font-weight="500">
-    <text x="20" y="37" fill="#0087ff">OpenAI quota</text>
+  <g font-family="Cascadia Mono, JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="17">
+    <text x="24" y="42" fill="#e8e8e8" font-weight="700">OpenAI Quota</text>
+    <text x="24" y="66" fill="#858585">Updated just now</text>
 
-    <circle cx="26" cy="53" r="5" fill="#3cab58"/>
-    <text x="43" y="60" fill="#3cab58">Quota up to date</text>
+    <text x="24" y="100" fill="#e8e8e8" font-weight="700">Session (5h)</text>
+    <text x="24" y="124"><tspan fill="#e8e8e8">━━━━━━━━━━━━━━━━</tspan><tspan fill="#858585">───────</tspan></text>
+    <text x="24" y="148" fill="#e8e8e8">68% remaining</text>
+    <text x="24" y="172" fill="#858585">Resets in 4h 12m</text>
 
-    <text x="20" y="83" fill="#858585">5-hour</text>
-    <text x="404" y="83" fill="#e8e8e8" text-anchor="end">19% left</text>
-    <rect x="20" y="98" width="24" height="4" fill="#e34d61"/>
+    <text x="24" y="206" fill="#e8e8e8" font-weight="700">Weekly</text>
+    <text x="24" y="230"><tspan fill="#f87171">━━━</tspan><tspan fill="#858585">────────────────────</tspan></text>
+    <text x="24" y="254" fill="#f87171">9% remaining</text>
+    <text x="24" y="278" fill="#858585">Resets in 2d 7h</text>
 
-    <text x="20" y="129" fill="#858585">Weekly</text>
-    <text x="404" y="129" fill="#e8e8e8" text-anchor="end">58% left</text>
-    <rect x="20" y="144" width="72" height="4" fill="#ffb000"/>
-
-    <text x="20" y="175" fill="#858585">Next reset · 5h · Oct 21, 10:12</text>
-    <text x="20" y="198" fill="#858585">PM · 33m</text>
-
-    <text x="20" y="221" fill="#858585">Updated 9:38:58 PM</text>
-    <text x="20" y="244" fill="#858585">Banked resets · 2 available</text>
-    <text x="20" y="267" fill="#858585">Next expiry · Oct 31, 10:12</text>
-    <text x="20" y="290" fill="#858585">PM · 10d</text>
+    <text x="24" y="312" fill="#858585">───────────────────────</text>
+    <text x="24" y="336" fill="#e8e8e8">2 available banked resets</text>
+    <text x="24" y="360" fill="#858585">Next expires in 9d</text>
   </g>
 </svg>
