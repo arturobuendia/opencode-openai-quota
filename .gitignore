@@ -15,5 +15,8 @@ node_modules/
 !.env.template
 !.env.sample
 
+# Local npm configuration that can carry an auth token.
+.npmrc
+
 # npm diagnostic logs.
 npm-debug.log*
