@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1
+
+- README header now shows the npm version badge and the one-line `opencode plugin add opencode-openai-quota` install, next to the existing status badges.
+- No runtime changes; this release publishes the current README to the npm package page.
+
 ## 0.3.0 — OpenCode 2 beta
 
 - Updated sidebar: longer progress bars, red/amber low-balance states, visual separation of banked resets, and consistent English countdown labels.
