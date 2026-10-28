@@ -114,6 +114,46 @@ Or point OpenCode at the checkout from `opencode.json`, which loads both the ser
 
 Keep the checkout in place after configuring it. OpenCode reloads plugins when configuration changes; if the panel does not appear, run `/reload`.
 
+### Option C — install with an AI agent
+
+Paste this into any coding agent with shell access. The prompt installs through discovery, so no configuration file is edited and no credential is touched.
+
+```text
+Install the "OpenAI Quota for OpenCode 2" plugin on this machine from
+https://github.com/arturobuendia/opencode-openai-quota
+
+Rules for this task:
+- Do not read, print, or copy any OAuth token, auth.json, or credential store.
+- Do not edit opencode.json, cli.json, auth.json, the OpenCode database, or other plugins.
+- Ask before installing system packages or changing PATH.
+- Stop and report instead of guessing when a prerequisite is missing.
+
+Steps:
+1. Check that `opencode --version` reports OpenCode 2. If it is v1 or missing, stop.
+2. Check the Codex CLI with `codex --version`, then `codex login status`. If Codex is
+   missing or not logged in to a ChatGPT account, stop and report what I have to run.
+3. Resolve the global OpenCode config directory: `$OPENCODE_CONFIG_DIR`, else
+   `$XDG_CONFIG_HOME/opencode`, else `~/.config/opencode`
+   (`%USERPROFILE%\.config\opencode` on Windows).
+4. Clone the repository into a permanent folder I choose, keep the checkout, and
+   record its path. Never install from a temporary directory.
+5. Install into `<config>/plugins/openai-quota/` by copying `src/`, `index.ts`,
+   `tui.tsx`, `tsconfig.json`, and `package.json`. If that folder already exists,
+   move the old copy to `<config>/openai-quota-backups/` first; never leave a backup
+   inside `plugins/`, where OpenCode would discover both copies.
+   On Windows you may run `.\install.ps1` from the checkout instead of copying.
+6. Reload OpenCode with `/reload`, or restart the TUI.
+7. Verify: `npm test` in the checkout must pass (Node.js 20+; if Node is unavailable,
+   say so instead of skipping silently), and the session sidebar must show an
+   "OpenAI Quota" panel. If the panel says "Cannot read Codex quota", report the exact
+   message under it and stop.
+
+Finish by reporting the checkout path, the install path, whether an old copy was
+backed up, and the verification result.
+```
+
+The prompt never asks for your token and never edits your configuration. If an agent proposes adding the plugin to `opencode.json` or reading `auth.json`, it went off-script—stop it and point it back here.
+
 ## What appears in the sidebar
 
 ```text
