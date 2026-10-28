@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2
+
+- Fix the TUI plugin failing to load with `Cannot find package 'react' imported from .../src/tui.tsx`. OpenCode transpiles the TUI entry with its own Bun runtime and never sees the package's `tsconfig.json`, so Bun fell back to React's JSX runtime. The file now declares `@jsxImportSource @opentui/solid` itself, and a test keeps it from regressing.
+
 ## 0.3.1
 
 - README header now shows the npm version badge and the one-line `opencode plugin add opencode-openai-quota` install, next to the existing status badges.

@@ -245,6 +245,7 @@ Targets **OpenCode 2** and its built-in TUI plugin API. The published package de
 - **Verify outside OpenCode:** `npm run probe` prints the same snapshot the panel uses, or fails with the underlying reason.
 - **Banked reset expiration says unavailable:** the count can still be right while the detail list is missing, incomplete, or uses an unknown expiration. The plugin never infers an expiration from a normal reset time.
 - **No weekly or no session row:** Codex only returned one window. The plugin shows what exists and never invents the other.
+- **`TUI plugin error` mentioning `Cannot find package 'react'`:** a broken release older than 0.3.2. Update with `opencode plugin update opencode-openai-quota` and restart OpenCode.
 
 ## Development
 

@@ -19,6 +19,7 @@
 
 ## Code boundaries and behavior
 - Keep rendering, slot registration, keymap commands, and lifecycle/interval wiring in `src/tui.tsx`; process handling in `src/codex.js`; parsing and formatting in `src/quota.js`.
+- `src/tui.tsx` must keep its `/** @jsxImportSource @opentui/solid */` pragma. OpenCode loads the TUI entry with its own Bun runtime and never reads this package's `tsconfig.json`, so without the pragma Bun resolves React's JSX runtime and the plugin fails to load.
 - The plugin has no credentials and makes no HTTP requests. Never read `auth.json` or `OPENCODE_AUTH_CONTENT`, and never log a token or raw Codex output.
 - One read must not outlive itself: close stdin, keep the timeout, and kill the child if it lingers. Never let two reads start overlapping `codex` processes; route them through `src/refresh.js`.
 - `usedPercent` is converted to remaining quota. Identify windows by their reported duration and show the real duration when it is not a known one; never invent a window the payload does not contain.
