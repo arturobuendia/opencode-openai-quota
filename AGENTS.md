@@ -1,7 +1,12 @@
 # Repository Instructions
 
+## Workflow
+- Commit and push directly to `master`; do not create feature branches unless the repository owner asks for one.
+- Keep each commit one reviewable work unit, with the tests and docs for that behavior in the same commit.
+- Never force-push, amend published commits, or rewrite history on `master`. If a change looks wrong after pushing, fix it with a new commit.
+
 ## Runtime and verification
-- This is a private ES module package for OpenCode 2; Node.js 20 or newer is required for the development scripts.
+- This is an ES module OpenCode 2 plugin package, distributed as the npm package `opencode-openai-quota`; Node.js 20 or newer is required for the development scripts.
 - Run the full suite with `npm test`; run the quota tests alone with `node --test test/quota.test.mjs`.
 - `npm run check` syntax-checks `src/codex.js`, `src/quota.js`, and `src/refresh.js`, then runs `npm test`. It does not need Bun or an OpenCode installation.
 - `npm run probe` is the only script that touches a real `codex app-server`. Everything else must stay offline.
