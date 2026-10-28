@@ -13,6 +13,7 @@
 - Windows: quote the Codex command and arguments when spawning through the shell, so executables in paths with spaces work.
 - Remove the unused V1 modules and tests (`src/tui.js`, `src/auth.js`, the legacy `.test.js` suite, and the Bun host harness), and rewrite `AGENTS.md` around the OpenCode 2 architecture.
 - All user-visible error messages are English, matching the rest of the panel.
+- Publish to npm as `opencode-openai-quota`: install with `opencode plugin add`, a `files` whitelist so only runtime sources ship, package metadata, and a `prepublishOnly` gate that runs the suite.
 
 ## 0.2.0
 
