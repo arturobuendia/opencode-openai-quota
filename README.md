@@ -59,9 +59,27 @@ No model turn is created, so **checking the panel never consumes quota**. The pl
 
 ## Quick install
 
-> Source checkout only: `package.json` is marked `private`, so there is no npm package to install.
+One command from npm; the source options below are for development or offline setups.
 
-### Option A — installer script (Windows)
+### Option A — from npm (recommended)
+
+```sh
+opencode plugin add opencode-openai-quota
+```
+
+This installs the package and configures it globally. The server and TUI parts load together, so there is no config file to edit by hand.
+
+```sh
+opencode plugin add opencode-openai-quota@0.3.0   # pin an exact version
+opencode plugin update                            # update every package plugin
+opencode plugin update opencode-openai-quota      # update only this one
+opencode plugin list                              # see what is installed
+opencode plugin remove opencode-openai-quota      # uninstall
+```
+
+If OpenCode is already running, reload with `/reload`. The panel appears in the next session's sidebar.
+
+### Option B — installer script (Windows, from source)
 
 ```powershell
 git clone https://github.com/arturobuendia/opencode-openai-quota.git
@@ -84,7 +102,7 @@ The script copies the plugin into OpenCode's global discovery folder:
 
 An existing install is moved to `<config>/openai-quota-backups/` before the copy—never inside `plugins/`, where OpenCode would discover both copies. The script does not touch `opencode.json`, `cli.json`, `auth.json`, or your other plugins.
 
-### Option B — manual, any platform
+### Option C — manual, any platform
 
 Copy the same files into the discovery folder:
 
@@ -114,17 +132,16 @@ Or point OpenCode at the checkout from `opencode.json`, which loads both the ser
 
 Keep the checkout in place after configuring it. OpenCode reloads plugins when configuration changes; if the panel does not appear, run `/reload`.
 
-### Option C — install with an AI agent
+### Option D — install with an AI agent
 
-Paste this into any coding agent with shell access. The prompt installs through discovery, so no configuration file is edited and no credential is touched.
+Paste this into any coding agent with shell access. It installs the published package, so no file is copied and no credential is touched.
 
 ```text
-Install the "OpenAI Quota for OpenCode 2" plugin on this machine from
-https://github.com/arturobuendia/opencode-openai-quota
+Install the "OpenAI Quota for OpenCode 2" plugin on this machine.
 
 Rules for this task:
 - Do not read, print, or copy any OAuth token, auth.json, or credential store.
-- Do not edit opencode.json, cli.json, auth.json, the OpenCode database, or other plugins.
+- Do not hand-edit opencode.json, cli.json, auth.json, the OpenCode database, or other plugins.
 - Ask before installing system packages or changing PATH.
 - Stop and report instead of guessing when a prerequisite is missing.
 
@@ -132,27 +149,19 @@ Steps:
 1. Check that `opencode --version` reports OpenCode 2. If it is v1 or missing, stop.
 2. Check the Codex CLI with `codex --version`, then `codex login status`. If Codex is
    missing or not logged in to a ChatGPT account, stop and report what I have to run.
-3. Resolve the global OpenCode config directory: `$OPENCODE_CONFIG_DIR`, else
-   `$XDG_CONFIG_HOME/opencode`, else `~/.config/opencode`
-   (`%USERPROFILE%\.config\opencode` on Windows).
-4. Clone the repository into a permanent folder I choose, keep the checkout, and
-   record its path. Never install from a temporary directory.
-5. Install into `<config>/plugins/openai-quota/` by copying `src/`, `index.ts`,
-   `tui.tsx`, `tsconfig.json`, and `package.json`. If that folder already exists,
-   move the old copy to `<config>/openai-quota-backups/` first; never leave a backup
-   inside `plugins/`, where OpenCode would discover both copies.
-   On Windows you may run `.\install.ps1` from the checkout instead of copying.
-6. Reload OpenCode with `/reload`, or restart the TUI.
-7. Verify: `npm test` in the checkout must pass (Node.js 20+; if Node is unavailable,
-   say so instead of skipping silently), and the session sidebar must show an
-   "OpenAI Quota" panel. If the panel says "Cannot read Codex quota", report the exact
-   message under it and stop.
+3. Install the plugin with `opencode plugin add opencode-openai-quota`. If that command
+   fails, report the exact error and stop; do not clone the repository or copy files as a
+   workaround.
+4. Confirm with `opencode plugin list` that the plugin is listed.
+5. Reload OpenCode with `/reload`, or tell me to restart the TUI if the sidebar does not
+   refresh.
+6. Verify: the session sidebar must show an "OpenAI Quota" panel. If it says
+   "Cannot read Codex quota", report the exact message under it and stop.
 
-Finish by reporting the checkout path, the install path, whether an old copy was
-backed up, and the verification result.
+Finish by reporting the installed version and whether the panel rendered.
 ```
 
-The prompt never asks for your token and never edits your configuration. If an agent proposes adding the plugin to `opencode.json` or reading `auth.json`, it went off-script—stop it and point it back here.
+The prompt never asks for your token and never hand-edits your configuration. If an agent proposes reading `auth.json` or writing config files directly, it went off-script—stop it and point it back here.
 
 ## What appears in the sidebar
 
@@ -223,11 +232,11 @@ Automatic attempts respect a **60-second cooldown**, and overlapping requests sh
 
 ## Compatibility
 
-Targets **OpenCode 2** and its built-in TUI plugin API. OpenCode resolves `@opencode/plugin`, `@opentui/*`, and `solid-js` at runtime, so the checkout declares them as peer dependencies and you do not install them yourself. No `engines.opencode` range is declared; older or newer TUI APIs are not guaranteed.
+Targets **OpenCode 2** and its built-in TUI plugin API. The published package declares `@opencode/plugin` as a dependency and `@opentui/core`, `@opentui/solid`, and `solid-js` as peers, so OpenCode supplies the rendering runtime and you install nothing by hand. No `engines.opencode` range is declared; older or newer TUI APIs are not guaranteed.
 
 ## Troubleshooting
 
-- **No panel:** confirm the folder is `<config>/plugins/openai-quota`, or that the checkout path is listed in `opencode.json`/`cli.json`; then run `/reload`.
+- **No panel:** confirm `opencode plugin list` shows the plugin (or that a source install exists at `<config>/plugins/openai-quota`), then run `/reload`.
 - **`Cannot read Codex quota`:** read the message under it. `codex` missing from `PATH` → install the Codex CLI. Not logged in → run `codex login`. Timeout → the app-server took longer than 15 seconds.
 - **Numbers look wrong:** check which account the local CLI is using with `codex login status`. The panel follows Codex, not OpenCode.
 - **Verify outside OpenCode:** `npm run probe` prints the same snapshot the panel uses, or fails with the underlying reason.
@@ -236,12 +245,13 @@ Targets **OpenCode 2** and its built-in TUI plugin API. OpenCode resolves `@open
 
 ## Development
 
-Node.js **20 or newer** is required for the development scripts. The package declares no runtime dependencies.
+Node.js **20 or newer** is required for the development scripts. The package has one runtime dependency (`@opencode/plugin`) plus the OpenTUI peers that OpenCode provides.
 
 ```sh
-npm test        # offline suite: codex handshake, normalization, refresh, labels
-npm run probe   # one real read through your local codex app-server
-npm run check   # syntax-check the source modules, then run the suite
+npm test              # offline suite: codex handshake, normalization, refresh, labels
+npm run probe         # one real read through your local codex app-server
+npm run check         # syntax-check the source modules, then run the suite
+npm pack --dry-run    # inspect exactly what would be published
 ```
 
 Tests use a synthetic Codex fixture (`test/fake-codex.mjs`) and injected clocks, so they stay offline and never read real credentials.
@@ -253,12 +263,28 @@ Tests use a synthetic Codex fixture (`test/fake-codex.mjs`) and injected clocks,
 | `src/codex.js` | Spawns `codex app-server` and runs the JSON-RPC handshake. |
 | `src/quota.js` | Normalizes the payload; formats percentages, bars, and relative times. |
 | `src/refresh.js` | Cooldown and coalescing so only one read runs at a time. |
-| `install.ps1`, `uninstall.ps1` | Global discovery install and removal. |
+| `install.ps1`, `uninstall.ps1` | Source checkout install/removal for the discovery folder. |
+
+## Publishing (maintainers)
+
+```sh
+npm login                        # once per machine
+npm run check                    # also runs automatically via prepublishOnly
+npm version patch|minor|major    # bumps package.json, commits, tags
+npm publish --access public
+git push --follow-tags
+```
+
+The `files` field limits the tarball to `src/`, the two root entrypoints, and `tsconfig.json`; tests, scripts, installers, and assets stay in the repository. Pinned installs keep their version, and `opencode plugin update` moves unpinned ones forward.
 
 ## Uninstall
 
-```powershell
-.\uninstall.ps1
+```sh
+opencode plugin remove opencode-openai-quota
 ```
 
-It removes only `<config>/plugins/openai-quota`. If you installed through configuration instead, delete that entry from `opencode.json`/`cli.json`, then run `/reload`. Backups under `<config>/openai-quota-backups/` are yours to delete.
+If you installed from a source checkout instead, run `.\uninstall.ps1`, which removes only `<config>/plugins/openai-quota`. If you configured a path in `opencode.json`/`cli.json`, delete that entry. Run `/reload` afterwards; backups under `<config>/openai-quota-backups/` are yours to delete.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

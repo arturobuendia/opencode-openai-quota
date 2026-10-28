@@ -1,14 +1,39 @@
 {
-  "name": "opencode-openai-quota-v2",
+  "name": "opencode-openai-quota",
   "version": "0.3.0",
-  "private": true,
+  "description": "OpenAI Codex subscription quota in your OpenCode 2 sidebar, read locally from the Codex CLI.",
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./tui": "./src/tui.tsx"
   },
+  "files": [
+    "src",
+    "index.ts",
+    "tui.tsx",
+    "tsconfig.json"
+  ],
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "openai",
+    "codex",
+    "quota",
+    "tui"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arturobuendia/opencode-openai-quota.git"
+  },
+  "homepage": "https://github.com/arturobuendia/opencode-openai-quota#readme",
+  "bugs": {
+    "url": "https://github.com/arturobuendia/opencode-openai-quota/issues"
+  },
+  "dependencies": {
+    "@opencode/plugin": "^2.2.0"
+  },
   "peerDependencies": {
-    "@opencode/plugin": "*",
     "@opentui/core": ">=0.6.6",
     "@opentui/solid": ">=0.6.6",
     "solid-js": ">=1.9.0"
@@ -16,6 +41,7 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "probe": "node scripts/probe.mjs",
-    "check": "node --check src/codex.js && node --check src/quota.js && node --check src/refresh.js && npm test"
+    "check": "node --check src/codex.js && node --check src/quota.js && node --check src/refresh.js && npm test",
+    "prepublishOnly": "npm run check"
   }
 }
